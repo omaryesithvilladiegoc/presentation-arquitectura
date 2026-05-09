@@ -9,7 +9,6 @@ const navLinks = [
   { id: 'layers', label: 'Capas' },
   { id: 'facade', label: 'Facade' },
   { id: 'simulator', label: 'Simulador' },
-  { id: 'comparison', label: 'Comparación' },
   { id: 'testing', label: 'Testing' },
 ];
 
