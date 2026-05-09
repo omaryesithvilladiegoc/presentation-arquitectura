@@ -4,7 +4,7 @@ import { HexagonScene } from '@/components/HexagonScene';
 import { TagPill } from '@/components/TagPill';
 
 const titleWords = ['Arquitectura', 'Hexagonal'];
-const subtitleWords = ['en', 'NestJS'];
+const subtitleWords = ['y', 'Patrón', 'Facade'];
 
 export function HeroSection() {
   const [isVisible, setIsVisible] = useState(true);
@@ -17,24 +17,38 @@ export function HeroSection() {
       ([entry]) => setIsVisible(entry.isIntersecting),
       { threshold: 0.1 }
     );
-    if (canvasContainerRef.current) observer.observe(canvasContainerRef.current);
+
+    if (canvasContainerRef.current) {
+      observer.observe(canvasContainerRef.current);
+    }
+
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       if (!sectionRef.current) return;
+
       const rect = sectionRef.current.getBoundingClientRect();
-      const progress = Math.max(0, Math.min(1, -rect.top / (rect.height * 0.8)));
+      const progress = Math.max(
+        0,
+        Math.min(1, -rect.top / (rect.height * 0.8))
+      );
+
       setScrollProgress(progress);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -43,15 +57,13 @@ export function HeroSection() {
       id="hero"
       className="relative min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden"
     >
-      {/* 3D Canvas Container */}
-      <div ref={canvasContainerRef} className="absolute inset-0 z-[1]">
-        {isVisible && <HexagonScene />}
-      </div>
 
       {/* Ambient gradient overlay */}
-      <div className="absolute inset-0 z-[2] pointer-events-none"
+      <div
+        className="absolute inset-0 z-[2] pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 50% 50%, transparent 30%, #08080F 75%), radial-gradient(ellipse at 50% 70%, rgba(0, 212, 255, 0.08) 0%, transparent 50%)',
+          background:
+            'radial-gradient(ellipse at 50% 50%, transparent 30%, #08080F 75%), radial-gradient(ellipse at 50% 70%, rgba(0, 212, 255, 0.08) 0%, transparent 50%)',
         }}
       />
 
@@ -77,8 +89,16 @@ export function HeroSection() {
               <motion.span
                 key={word}
                 className="inline-block mr-[0.25em]"
-                initial={{ clipPath: 'inset(100% 0 0 0)', y: 30, opacity: 0 }}
-                animate={{ clipPath: 'inset(0% 0 0 0)', y: 0, opacity: 1 }}
+                initial={{
+                  clipPath: 'inset(100% 0 0 0)',
+                  y: 30,
+                  opacity: 0,
+                }}
+                animate={{
+                  clipPath: 'inset(0% 0 0 0)',
+                  y: 0,
+                  opacity: 1,
+                }}
                 transition={{
                   delay: 0.4 + i * 0.08,
                   duration: 0.8,
@@ -89,18 +109,29 @@ export function HeroSection() {
               </motion.span>
             ))}
           </span>
+
           <motion.span
             className="block mt-2"
-            initial={{ clipPath: 'inset(100% 0 0 0)', y: 30, opacity: 0 }}
-            animate={{ clipPath: 'inset(0% 0 0 0)', y: 0, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            initial={{
+              clipPath: 'inset(100% 0 0 0)',
+              y: 30,
+              opacity: 0,
+            }}
+            animate={{
+              clipPath: 'inset(0% 0 0 0)',
+              y: 0,
+              opacity: 1,
+            }}
+            transition={{
+              delay: 0.6,
+              duration: 0.8,
+              ease: [0.16, 1, 0.3, 1],
+            }}
           >
-            {subtitleWords.map((word, i) => (
+            {subtitleWords.map((word) => (
               <span
                 key={word}
-                className={`inline-block mr-[0.25em] bg-gradient-to-r from-accent-violet to-accent-cyan bg-clip-text text-transparent ${
-                  i === 0 ? '' : ''
-                }`}
+                className="inline-block mr-[0.25em] bg-gradient-to-r from-accent-violet to-accent-cyan bg-clip-text text-transparent"
               >
                 {word}
               </span>
@@ -108,15 +139,24 @@ export function HeroSection() {
           </motion.span>
         </h1>
 
-        <motion.p
-          className="mt-6 text-lg text-text-secondary max-w-[600px] leading-relaxed"
+        <motion.div
+          className="mt-8 text-lg leading-relaxed space-y-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
         >
-          Aprende a construir aplicaciones desacopladas, testeables y mantenibles.
-          Domina los Ports &amp; Adapters paso a paso.
-        </motion.p>
+          <p>
+            Omar Villadiego • David Hernandez
+          </p>
+
+          <p>
+            Clase de Arquitectura de Software
+          </p>
+
+          <p>
+            Profesor Andres Marin
+          </p>
+        </motion.div>
 
         <motion.div
           className="mt-10 flex flex-col sm:flex-row items-center gap-4"
@@ -130,7 +170,6 @@ export function HeroSection() {
           >
             Explorar Arquitectura
           </button>
-         
         </motion.div>
       </motion.div>
 
@@ -145,7 +184,11 @@ export function HeroSection() {
           <motion.div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent-cyan"
             animate={{ y: [0, 40] }}
-            transition={{ duration: 2, ease: 'easeInOut', repeat: Infinity }}
+            transition={{
+              duration: 2,
+              ease: 'easeInOut',
+              repeat: Infinity,
+            }}
           />
         </div>
       </motion.div>

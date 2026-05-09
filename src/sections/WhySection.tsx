@@ -45,6 +45,18 @@ export function WhySection() {
         ease: 'power2.out',
       });
 
+      // Animate description
+      gsap.from('.why-description', {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 75%',
+        },
+        y: 20,
+        opacity: 0,
+        duration: 0.8,
+        ease: 'power2.out',
+      });
+
       // Animate diagram elements
       if (diagramRef.current) {
         const tradEls = diagramRef.current.querySelectorAll('.trad-band');
@@ -62,14 +74,33 @@ export function WhySection() {
         });
 
         // Phase 1: Traditional visible
-        tl.fromTo(tradEls, { opacity: 0, y: 20 }, { opacity: 1, y: 0, stagger: 0.1 })
+        tl.fromTo(
+          tradEls,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, stagger: 0.1 }
+        )
           .fromTo(tradLines, { opacity: 0 }, { opacity: 1 }, '<0.2')
+
           // Phase 2: Break apart
           .to(tradLines, { opacity: 0, duration: 0.3 })
           .to(tradEls, { opacity: 0, y: -20, duration: 0.3 }, '<')
+
           // Phase 3: Hexagonal appears
-          .fromTo(hexEls, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, stagger: 0.08 })
-          .fromTo(hexLines, { opacity: 0, strokeDashoffset: 30 }, { opacity: 0.6, strokeDashoffset: 0, stagger: 0.05 }, '<0.1');
+          .fromTo(
+            hexEls,
+            { opacity: 0, scale: 0.8 },
+            { opacity: 1, scale: 1, stagger: 0.08 }
+          )
+          .fromTo(
+            hexLines,
+            { opacity: 0, strokeDashoffset: 30 },
+            {
+              opacity: 0.6,
+              strokeDashoffset: 0,
+              stagger: 0.05,
+            },
+            '<0.1'
+          );
       }
     }, sectionRef);
 
@@ -77,24 +108,60 @@ export function WhySection() {
   }, []);
 
   return (
-    <section ref={sectionRef} id="why" className="section-padding relative overflow-hidden">
+    <section
+      ref={sectionRef}
+      id="why"
+      className="section-padding relative overflow-hidden"
+    >
       <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
         <div className="grid lg:grid-cols-[45%_55%] gap-12 lg:gap-16 items-center">
+
           {/* Left Column - Text + Cards */}
           <div>
             <SectionLabel text="El Problema" />
-            <SectionHeading text="¿Por qué Arquitectura Hexagonal?" className="mb-10" />
 
+            <SectionHeading
+              text="¿Por qué Arquitectura Hexagonal?"
+              className="mb-6"
+            />
+
+            {/* Definition */}
+            <p className="why-description text-text-secondary leading-relaxed mb-8 max-w-[620px]">
+              La Arquitectura Hexagonal es un modelo de diseño de software
+              que separa la lógica de negocio de las tecnologías externas
+              mediante el uso de
+              <span className="text-accent-cyan font-medium"> Ports </span>
+              y
+              <span className="text-accent-violet font-medium">
+                {' '}
+                Adapters
+              </span>.
+              Esto permite construir aplicaciones desacopladas, escalables,
+              fáciles de mantener y simples de testear sin depender
+              directamente de bases de datos, APIs o frameworks.
+            </p>
+
+            {/* Problem Cards */}
             <div className="space-y-4">
               {problems.map((p, i) => (
-                <GlassCard key={i} className="why-card" borderLeft="#FFB800">
+                <GlassCard
+                  key={i}
+                  className="why-card"
+                  borderLeft="#FFB800"
+                >
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg bg-accent-amber/10 flex items-center justify-center shrink-0">
                       <p.icon className="w-5 h-5 text-accent-amber" />
                     </div>
+
                     <div>
-                      <h3 className="text-base font-semibold text-text-primary mb-1">{p.title}</h3>
-                      <p className="text-sm text-text-secondary leading-relaxed">{p.desc}</p>
+                      <h3 className="text-base font-semibold text-text-primary mb-1">
+                        {p.title}
+                      </h3>
+
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        {p.desc}
+                      </p>
                     </div>
                   </div>
                 </GlassCard>
@@ -103,10 +170,19 @@ export function WhySection() {
           </div>
 
           {/* Right Column - Animated Diagram */}
-          <div ref={diagramRef} className="relative aspect-square max-w-[500px] mx-auto">
+          <div
+            ref={diagramRef}
+            className="relative aspect-square max-w-[500px] mx-auto"
+          >
             {/* Traditional Architecture - Bands */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              {['Frontend', 'Controller', 'Service', 'Repository', 'Base de Datos'].map((label, i) => (
+              {[
+                'Frontend',
+                'Controller',
+                'Service',
+                'Repository',
+                'Base de Datos',
+              ].map((label, i) => (
                 <div
                   key={`trad-${i}`}
                   className="trad-band w-64 h-12 rounded-lg flex items-center justify-center text-sm font-medium border"
@@ -119,6 +195,7 @@ export function WhySection() {
                   {label}
                 </div>
               ))}
+
               <div className="trad-line absolute inset-0 flex items-center justify-center pointer-events-none">
                 <span className="text-[0.7rem] font-semibold tracking-wider text-accent-amber bg-bg-primary px-3 py-1 rounded">
                   ACOPLAMIENTO ALTO
@@ -127,15 +204,54 @@ export function WhySection() {
             </div>
 
             {/* Hexagonal Architecture */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400">
+            <svg
+              className="absolute inset-0 w-full h-full"
+              viewBox="0 0 400 400"
+            >
               {/* Connection lines */}
               <g className="hex-line" opacity="0">
-                <path d="M200 200 L200 100" stroke="#00D4FF" strokeWidth="1" fill="none" strokeDasharray="8 4" />
-                <path d="M200 200 L286 250" stroke="#00D4FF" strokeWidth="1" fill="none" strokeDasharray="8 4" />
-                <path d="M200 200 L114 250" stroke="#00D4FF" strokeWidth="1" fill="none" strokeDasharray="8 4" />
-                <path d="M200 100 L200 50" stroke="#00D4FF" strokeWidth="1" fill="none" strokeDasharray="8 4" />
-                <path d="M200 100 L300 80" stroke="#00D4FF" strokeWidth="1" fill="none" strokeDasharray="8 4" />
-                <path d="M200 100 L100 80" stroke="#00D4FF" strokeWidth="1" fill="none" strokeDasharray="8 4" />
+                <path
+                  d="M200 200 L200 100"
+                  stroke="#00D4FF"
+                  strokeWidth="1"
+                  fill="none"
+                  strokeDasharray="8 4"
+                />
+                <path
+                  d="M200 200 L286 250"
+                  stroke="#00D4FF"
+                  strokeWidth="1"
+                  fill="none"
+                  strokeDasharray="8 4"
+                />
+                <path
+                  d="M200 200 L114 250"
+                  stroke="#00D4FF"
+                  strokeWidth="1"
+                  fill="none"
+                  strokeDasharray="8 4"
+                />
+                <path
+                  d="M200 100 L200 50"
+                  stroke="#00D4FF"
+                  strokeWidth="1"
+                  fill="none"
+                  strokeDasharray="8 4"
+                />
+                <path
+                  d="M200 100 L300 80"
+                  stroke="#00D4FF"
+                  strokeWidth="1"
+                  fill="none"
+                  strokeDasharray="8 4"
+                />
+                <path
+                  d="M200 100 L100 80"
+                  stroke="#00D4FF"
+                  strokeWidth="1"
+                  fill="none"
+                  strokeDasharray="8 4"
+                />
               </g>
 
               {/* Center hexagon - Domain */}
@@ -146,8 +262,29 @@ export function WhySection() {
                   stroke="#7B61FF"
                   strokeWidth="1.5"
                 />
-                <text x="200" y="195" textAnchor="middle" fill="#F0EDE8" fontSize="13" fontWeight="700" fontFamily="Inter">DOMINIO</text>
-                <text x="200" y="215" textAnchor="middle" fill="#7A7A8D" fontSize="8" fontFamily="JetBrains Mono">Entities, Value Objects</text>
+
+                <text
+                  x="200"
+                  y="195"
+                  textAnchor="middle"
+                  fill="#F0EDE8"
+                  fontSize="13"
+                  fontWeight="700"
+                  fontFamily="Inter"
+                >
+                  DOMINIO
+                </text>
+
+                <text
+                  x="200"
+                  y="215"
+                  textAnchor="middle"
+                  fill="#7A7A8D"
+                  fontSize="8"
+                  fontFamily="JetBrains Mono"
+                >
+                  Entities, Value Objects
+                </text>
               </g>
 
               {/* Application ring - Ports */}
@@ -156,14 +293,35 @@ export function WhySection() {
                 { x: 286, y: 250, label: 'Ports' },
                 { x: 114, y: 250, label: 'App Services' },
               ].map((pos, i) => (
-                <g key={`app-${i}`} className="hex-element" opacity="0">
+                <g
+                  key={`app-${i}`}
+                  className="hex-element"
+                  opacity="0"
+                >
                   <polygon
-                    points={`${pos.x},${pos.y - 30} ${pos.x + 26},${pos.y - 15} ${pos.x + 26},${pos.y + 15} ${pos.x},${pos.y + 30} ${pos.x - 26},${pos.y + 15} ${pos.x - 26},${pos.y - 15}`}
+                    points={`${pos.x},${pos.y - 30} ${pos.x + 26},${
+                      pos.y - 15
+                    } ${pos.x + 26},${pos.y + 15} ${pos.x},${
+                      pos.y + 30
+                    } ${pos.x - 26},${pos.y + 15} ${
+                      pos.x - 26
+                    },${pos.y - 15}`}
                     fill="rgba(0, 212, 255, 0.12)"
                     stroke="#00D4FF"
                     strokeWidth="1.2"
                   />
-                  <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="#F0EDE8" fontSize="9" fontWeight="600" fontFamily="Inter">{pos.label}</text>
+
+                  <text
+                    x={pos.x}
+                    y={pos.y + 4}
+                    textAnchor="middle"
+                    fill="#F0EDE8"
+                    fontSize="9"
+                    fontWeight="600"
+                    fontFamily="Inter"
+                  >
+                    {pos.label}
+                  </text>
                 </g>
               ))}
 
@@ -176,7 +334,11 @@ export function WhySection() {
                 { x: 70, y: 180, label: 'Queue' },
                 { x: 200, y: 330, label: 'WebSocket' },
               ].map((pos, i) => (
-                <g key={`adapt-${i}`} className="hex-element" opacity="0">
+                <g
+                  key={`adapt-${i}`}
+                  className="hex-element"
+                  opacity="0"
+                >
                   <rect
                     x={pos.x - 40}
                     y={pos.y - 18}
@@ -187,7 +349,17 @@ export function WhySection() {
                     stroke="rgba(255,255,255,0.08)"
                     strokeWidth="1"
                   />
-                  <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="#7A7A8D" fontSize="8" fontFamily="Inter">{pos.label}</text>
+
+                  <text
+                    x={pos.x}
+                    y={pos.y + 4}
+                    textAnchor="middle"
+                    fill="#7A7A8D"
+                    fontSize="8"
+                    fontFamily="Inter"
+                  >
+                    {pos.label}
+                  </text>
                 </g>
               ))}
             </svg>
