@@ -401,27 +401,6 @@ export function DiagramSection() {
             )}
           </AnimatePresence>
         </div>
-
-        {/* Layer Navigation Pills */}
-        <div className="flex justify-center gap-3 mt-8">
-          {[
-            { key: 'domain', label: 'Dominio' },
-            { key: 'application', label: 'Aplicación' },
-            { key: 'infrastructure', label: 'Infraestructura' },
-          ].map(layer => (
-            <button
-              key={layer.key}
-              onClick={() => handleLayerClick(layer.key)}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 border ${
-                activeLayer === layer.key
-                  ? 'bg-accent-cyan/[0.12] border-accent-cyan text-accent-cyan'
-                  : 'bg-transparent border-white/[0.08] text-text-muted hover:text-text-primary hover:border-white/[0.15]'
-              }`}
-            >
-              {layer.label}
-            </button>
-          ))}
-        </div>
       </div>
     </section>
   );
