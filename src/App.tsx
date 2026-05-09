@@ -7,7 +7,6 @@ import { DiagramSection } from '@/sections/DiagramSection';
 import { LayersSection } from '@/sections/LayersSection';
 import { FacadeSection } from '@/sections/FacadeSection';
 import { SimulatorSection } from '@/sections/SimulatorSection';
-import { ComparisonSection } from '@/sections/ComparisonSection';
 import { TestingSection } from '@/sections/TestingSection';
 import { Footer } from '@/sections/Footer';
 import { useLenis } from '@/hooks/useLenis';
@@ -25,7 +24,6 @@ export default function App() {
         <LayersSection />
         <FacadeSection />
         <SimulatorSection />
-        <ComparisonSection />
         <TestingSection />
         <Footer />
       </main>

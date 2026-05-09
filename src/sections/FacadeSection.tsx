@@ -2,15 +2,15 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
-  Boxes,
+  Bell,
+  CalendarDays,
   CheckCircle2,
   Code2,
-  CreditCard,
   Eye,
-  Mail,
-  PackageCheck,
+  ClipboardCheck,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
   Wand2,
   Workflow,
   XCircle,
@@ -21,10 +21,10 @@ import { GlassCard } from '@/components/GlassCard';
 import { CodeCard } from '@/components/CodeCard';
 
 const subsystems = [
-  { label: 'Inventory', icon: Boxes, color: '#00D4FF', x: '20%', y: '24%' },
-  { label: 'Payments', icon: CreditCard, color: '#7B61FF', x: '80%', y: '24%' },
-  { label: 'Shipping', icon: PackageCheck, color: '#00E5A0', x: '20%', y: '76%' },
-  { label: 'Notifications', icon: Mail, color: '#FFB800', x: '80%', y: '76%' },
+  { label: 'Pacientes', icon: ClipboardCheck, color: '#00D4FF', x: '20%', y: '24%' },
+  { label: 'Agenda Medica', icon: CalendarDays, color: '#7B61FF', x: '80%', y: '24%' },
+  { label: 'Especialistas', icon: Stethoscope, color: '#00E5A0', x: '20%', y: '76%' },
+  { label: 'Notificaciones', icon: Bell, color: '#FFB800', x: '80%', y: '76%' },
 ];
 
 const flowSteps = [
@@ -51,54 +51,67 @@ const flowSteps = [
 ];
 
 const facadeCode = `@Injectable()
-export class CheckoutFacade {
+export class AppointmentRequestFacade {
   constructor(
-    private readonly inventory: InventoryService,
-    private readonly payments: PaymentService,
-    private readonly shipping: ShippingService,
+    private readonly patients: PatientService,
+    private readonly doctors: DoctorDirectoryService,
+    private readonly schedule: MedicalScheduleService,
     private readonly notifications: NotificationService,
   ) {}
 
-  async completeCheckout(command: CheckoutCommand) {
-    const reservation = await this.inventory.reserve(command.items);
-    const payment = await this.payments.charge(command.payment);
-    const shipment = await this.shipping.create(command.address);
-
-    await this.notifications.sendConfirmation({
-      orderId: command.orderId,
-      shipmentId: shipment.id,
+  async requestAppointment(command: RequestAppointmentCommand) {
+    const patient = await this.patients.verifyActivePatient(
+      command.patientId
+    );
+    const doctor = await this.doctors.findAvailableDoctor({
+      specialtyId: command.specialtyId,
+      preferredDate: command.preferredDate,
+    });
+    const appointment = await this.schedule.reserveSlot({
+      patientId: patient.id,
+      doctorId: doctor.id,
+      reason: command.reason,
+      preferredDate: command.preferredDate,
     });
 
-    return CheckoutResult.confirmed({
-      reservationId: reservation.id,
-      paymentId: payment.id,
-      shipmentId: shipment.id,
+    await this.notifications.sendAppointmentRequested({
+      patientEmail: patient.email,
+      doctorName: doctor.fullName,
+      appointmentDate: appointment.date,
+    });
+
+    return AppointmentRequestResult.pendingConfirmation({
+      appointmentId: appointment.id,
+      doctorId: doctor.id,
+      status: appointment.status,
     });
   }
 }`;
 
-const controllerCode = `@Controller('checkout')
-export class CheckoutController {
-  constructor(private readonly checkout: CheckoutFacade) {}
+const controllerCode = `@Controller('appointments')
+export class AppointmentRequestController {
+  constructor(
+    private readonly facade: AppointmentRequestFacade
+  ) {}
 
   @Post()
-  complete(@Body() dto: CheckoutDto) {
-    return this.checkout.completeCheckout(dto);
+  request(@Body() dto: RequestAppointmentDto) {
+    return this.facade.requestAppointment(dto);
   }
 }`;
 
 const withoutFacade = [
-  'Controller conoce inventario, pagos, envios y emails.',
-  'El flujo de negocio queda partido entre muchas clases externas.',
-  'Cada cambio de orden rompe tests y endpoints.',
-  'La UI o API aprende detalles que no deberia saber.',
+  'Controller conoce pacientes, agenda, doctores y notificaciones.',
+  'La solicitud de cita queda repartida entre demasiadas clases externas.',
+  'Cambiar la regla de disponibilidad rompe tests y endpoints.',
+  'La API aprende detalles clinicos y operativos que no deberia saber.',
 ];
 
 const withFacade = [
-  'Controller solo expresa la intencion: completar checkout.',
-  'El orden del proceso vive en una clase nombrada por negocio.',
-  'Los subsistemas cambian detras de una puerta estable.',
-  'Los tests verifican un flujo completo con mocks pequenos.',
+  'Controller solo expresa la intencion: solicitar una cita medica.',
+  'El flujo vive en una clase nombrada por negocio.',
+  'Agenda, pacientes y notificaciones cambian detras de una puerta estable.',
+  'Los tests verifican la solicitud completa con mocks pequenos.',
 ];
 
 export function FacadeSection() {
@@ -119,21 +132,33 @@ export function FacadeSection() {
         <div className="max-w-[1280px] mx-auto px-6 lg:px-10 relative z-10">
           <div className="grid lg:grid-cols-[42%_58%] gap-12 lg:gap-16 items-center">
             <div>
-              <SectionLabel text="Patron Facade" />
-              <SectionHeading text="Una Puerta Simple para un Sistema Complejo" className="mb-6" />
+             
+              <SectionHeading text="Patrón Facade" className="mb-6" />
               <p className="text-text-secondary leading-relaxed mb-8">
-                Facade crea una interfaz clara delante de varios servicios. No elimina la complejidad:
-                la organiza para que controllers, casos de uso o modulos externos no tengan que conocer
-                cada pieza interna del proceso.
+                Facade crea una interfaz clara delante de varios servicios. En una solicitud de cita medica,
+                organiza la validacion del paciente, la busqueda de especialista, la reserva de horario y
+                la notificacion sin cargar esa complejidad en el controller.
               </p>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 {[
-                  ['Oculta ruido', 'El consumidor ve una accion de negocio, no una coreografia tecnica.'],
-                  ['Reduce acoplamiento', 'Los cambios internos quedan detras de una API estable.'],
-                  ['Mejora tests', 'Pruebas el flujo como unidad y mockeas subsistemas pequenos.'],
-                  ['Nombra intenciones', 'completeCheckout comunica mas que llamar cinco servicios sueltos.'],
-                ].map(([title, desc], i) => (
+  [
+    'Separacion de responsabilidades',
+    'Cada parte del sistema tiene una responsabilidad bien definida dentro de la aplicacion.',
+  ],
+  [
+    'Flexibilidad',
+    'Puedes cambiar tecnologias externas sin afectar las reglas de negocio.',
+  ],
+  [
+    'Testeabilidad',
+    'La logica de negocio puede probarse de forma aislada usando mocks y stubs.',
+  ],
+  [
+    'Aplicacion central',
+    'Toda la arquitectura gira alrededor de una aplicacion que contiene las reglas de negocio.',
+  ],
+].map(([title, desc], i) => (
                   <motion.div
                     key={title}
                     initial={{ y: 24, opacity: 0 }}
@@ -215,111 +240,14 @@ export function FacadeSection() {
                 viewport={{ once: true }}
               >
                 <Sparkles className="w-4 h-4 text-accent-amber" />
-                <span className="text-sm text-text-secondary">Un metodo publico, varios subsistemas protegidos</span>
+                  <span className="text-sm text-text-secondary">Una solicitud publica, varios subsistemas protegidos</span>
               </motion.div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="facade-flow" className="section-padding relative overflow-hidden" style={{ background: '#0E0E18' }}>
-        <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
-          <div className="text-center mb-14">
-            <SectionLabel text="Flujo del Facade" />
-            <SectionHeading text="Del Caos a una Orquestacion Clara" className="mb-4" />
-            <p className="text-text-secondary max-w-2xl mx-auto">
-              Un Facade es especialmente util cuando una accion de negocio necesita coordinar varios pasos,
-              pero quieres que el borde de la app siga siendo simple.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-6 items-stretch mb-14">
-            <GlassCard borderLeft="#FFB800">
-              <div className="flex items-center gap-3 mb-6">
-                <XCircle className="w-5 h-5 text-accent-amber" />
-                <h3 className="text-lg font-semibold text-text-primary">Sin Facade</h3>
-              </div>
-              <div className="space-y-3">
-                {withoutFacade.map((item, i) => (
-                  <motion.div
-                    key={item}
-                    className="flex gap-3 text-sm text-text-secondary"
-                    initial={{ x: -20, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.08 }}
-                  >
-                    <span className="mt-1 w-1.5 h-1.5 rounded-full bg-accent-amber shrink-0" />
-                    <span>{item}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </GlassCard>
-
-            <div className="hidden lg:flex items-center justify-center">
-              <motion.div
-                animate={{ x: [-6, 6, -6] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-14 h-14 rounded-full border border-accent-cyan/25 bg-accent-cyan/10 flex items-center justify-center"
-              >
-                <ArrowRight className="w-6 h-6 text-accent-cyan" />
-              </motion.div>
-            </div>
-
-            <GlassCard borderLeft="#00E5A0">
-              <div className="flex items-center gap-3 mb-6">
-                <CheckCircle2 className="w-5 h-5 text-accent-emerald" />
-                <h3 className="text-lg font-semibold text-text-primary">Con Facade</h3>
-              </div>
-              <div className="space-y-3">
-                {withFacade.map((item, i) => (
-                  <motion.div
-                    key={item}
-                    className="flex gap-3 text-sm text-text-secondary"
-                    initial={{ x: 20, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.08 }}
-                  >
-                    <span className="mt-1 w-1.5 h-1.5 rounded-full bg-accent-emerald shrink-0" />
-                    <span>{item}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </GlassCard>
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-4 right-4 top-8 hidden lg:block h-px bg-gradient-to-r from-accent-cyan/10 via-accent-violet/70 to-accent-emerald/10" />
-            <div className="grid lg:grid-cols-4 gap-4">
-              {flowSteps.map((step, i) => (
-                <motion.button
-                  key={step.title}
-                  type="button"
-                  onClick={() => setActiveStep(i)}
-                  onMouseEnter={() => setActiveStep(i)}
-                  className={`relative text-left rounded-xl border p-5 transition-all duration-300 ${
-                    activeStep === i
-                      ? 'border-accent-cyan/50 bg-accent-cyan/[0.08] shadow-glow-cyan'
-                      : 'border-white/[0.08] bg-white/[0.03] hover:border-white/[0.16]'
-                  }`}
-                  initial={{ y: 24, opacity: 0 }}
-                  whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                >
-                  <div className="w-10 h-10 rounded-lg bg-bg-primary border border-white/10 flex items-center justify-center mb-4">
-                    <step.icon className="w-5 h-5 text-accent-cyan" />
-                  </div>
-                  <span className="text-[0.65rem] font-mono text-text-muted">0{i + 1}</span>
-                  <h3 className="text-base font-semibold text-text-primary mt-1 mb-2">{step.title}</h3>
-                  <p className="text-sm text-text-secondary leading-relaxed">{step.desc}</p>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+  
 
       <section id="facade-code" className="section-padding relative overflow-hidden">
         <div
@@ -333,10 +261,10 @@ export function FacadeSection() {
         <div className="max-w-[1280px] mx-auto px-6 lg:px-10 relative z-10">
           <div className="text-center mb-16">
             <SectionLabel text="NestJS Facade" />
-            <SectionHeading text="Como se ve en Codigo" className="mb-4" />
+            <SectionHeading text="Ejemplo" className="mb-4" />
             <p className="text-text-secondary max-w-2xl mx-auto">
               En NestJS, un Facade suele ser un provider inyectable. El controller llama una accion
-              expresiva y el Facade coordina servicios especializados.
+              expresiva y el Facade coordina los servicios de agenda medica.
             </p>
           </div>
 
@@ -346,7 +274,7 @@ export function FacadeSection() {
               whileInView={{ x: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.35 }}
             >
-              <CodeCard filename="checkout.controller.ts" badge="Entrada" badgeColor="#FFB800" code={controllerCode} />
+              <CodeCard filename="appointment-request.controller.ts" badge="Entrada" badgeColor="#FFB800" code={controllerCode} />
             </motion.div>
 
             <motion.div
@@ -355,14 +283,14 @@ export function FacadeSection() {
               viewport={{ once: true, amount: 0.25 }}
               transition={{ delay: 0.12 }}
             >
-              <CodeCard filename="checkout.facade.ts" badge="Facade" badgeColor="#00D4FF" code={facadeCode} />
+              <CodeCard filename="appointment-request.facade.ts" badge="Facade" badgeColor="#00D4FF" code={facadeCode} />
             </motion.div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mt-10">
             {[
-              ['Cuando usarlo', 'Cuando un flujo llama varios servicios y quieres una API de negocio clara.'],
-              ['Donde ponerlo', 'En la capa de aplicacion si orquesta casos de uso o servicios internos.'],
+              ['Cuando usarlo', 'Cuando solicitar una cita llama varios servicios y quieres una API de negocio clara.'],
+              ['Donde ponerlo', 'En la capa de aplicacion si orquesta agenda, pacientes y notificaciones.'],
               ['Que evitar', 'No lo conviertas en una clase gigante: si crece demasiado, separa flujos.'],
             ].map(([title, desc], i) => (
               <motion.div
@@ -383,6 +311,126 @@ export function FacadeSection() {
             ))}
           </div>
         </div>
+
+        {/* Ventajas y Desventajas */}
+<section
+  id="facade-pros-cons"
+  className="section-padding relative overflow-hidden"
+>
+  <div
+    className="absolute inset-0 pointer-events-none"
+    style={{
+      background:
+        'radial-gradient(circle at 20% 20%, rgba(0,212,255,0.08) 0%, transparent 30%), radial-gradient(circle at 80% 80%, rgba(255,184,0,0.08) 0%, transparent 30%)',
+    }}
+  />
+
+  <div className="max-w-[1280px] mx-auto px-6 lg:px-10 relative z-10">
+    <div className="text-center mb-14">
+      <SectionLabel text="Analisis" />
+
+      <SectionHeading
+        text="Ventajas y Desventajas"
+        className="mb-4"
+      />
+
+      <p className="text-text-secondary max-w-2xl mx-auto">
+        El patron Facade simplifica la comunicacion con multiples servicios,
+        pero tambien requiere una buena organizacion para evitar convertirlo
+        en una clase demasiado grande.
+      </p>
+    </div>
+
+    <div className="grid lg:grid-cols-2 gap-6">
+
+      {/* Ventajas */}
+      <motion.div
+        initial={{ x: -40, opacity: 0 }}
+        whileInView={{ x: 0, opacity: 1 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.5 }}
+      >
+        <GlassCard
+          className="h-full"
+          borderLeft="#00E5A0"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <CheckCircle2 className="w-6 h-6 text-accent-emerald" />
+
+            <h3 className="text-xl font-semibold text-text-primary">
+              Ventajas
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              'Simplifica la comunicacion entre controllers y subsistemas.',
+              'Centraliza el flujo de negocio en una sola clase.',
+              'Facilita las pruebas usando mocks pequenos.',
+              'Permite cambiar implementaciones internas sin afectar el exterior.',
+              'Mantiene el controller limpio y enfocado en recibir peticiones.',
+            ].map((item, i) => (
+              <motion.div
+                key={item}
+                className="flex gap-3 text-sm text-text-secondary"
+                initial={{ y: 12, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+              >
+                <span className="mt-1 w-2 h-2 rounded-full bg-accent-emerald shrink-0" />
+                <span>{item}</span>
+              </motion.div>
+            ))}
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* Desventajas */}
+      <motion.div
+        initial={{ x: 40, opacity: 0 }}
+        whileInView={{ x: 0, opacity: 1 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.5 }}
+      >
+        <GlassCard
+          className="h-full"
+          borderLeft="#FFB800"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <XCircle className="w-6 h-6 text-accent-amber" />
+
+            <h3 className="text-xl font-semibold text-text-primary">
+              Desventajas
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              'Puede crecer demasiado si concentra demasiadas responsabilidades.',
+              'Agregar demasiada logica rompe la claridad del flujo.',
+              'Un mal diseño puede convertir el Facade en una clase dificil de mantener.',
+              'Requiere una buena separacion de servicios internos.',
+              'En proyectos pequenos puede agregar complejidad innecesaria.',
+            ].map((item, i) => (
+              <motion.div
+                key={item}
+                className="flex gap-3 text-sm text-text-secondary"
+                initial={{ y: 12, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+              >
+                <span className="mt-1 w-2 h-2 rounded-full bg-accent-amber shrink-0" />
+                <span>{item}</span>
+              </motion.div>
+            ))}
+          </div>
+        </GlassCard>
+      </motion.div>
+    </div>
+  </div>
+</section>
       </section>
     </>
   );

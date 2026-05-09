@@ -164,14 +164,9 @@ export function WhySection() {
 
             {/* Definition */}
             <p className="why-description text-text-secondary leading-relaxed mb-8 max-w-[620px]">
-              La arquitectura hexagonal es una propuesta donde se busca
-              organizar un sistema a partir de un elemento central llamado
-              <span className="text-accent-cyan font-medium">
-                {' '}aplicación
-              </span>.
-              Esta aplicación contiene las reglas de negocio y proporciona
-              una estructura modular que promueve la separación de
-              responsabilidades, la flexibilidad y la testeabilidad.
+             La arquitectura hexagonal nos organizar un sistema alrededor de un núcleo central llamado aplicación, donde se encuentran las reglas de negocio.
+             
+              Su objetivo es separar la lógica principal de elementos externos como bases de datos, APIs o frameworks, permitiendo construir aplicaciones más flexibles, mantenibles, fáciles de probar e independientes de tecnologías específicas.
               <br />
               <br />
               También es conocida como arquitectura de

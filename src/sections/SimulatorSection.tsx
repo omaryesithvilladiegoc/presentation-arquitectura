@@ -7,43 +7,43 @@ import { Globe, Server, Workflow, Plug, Cpu, Database, ChevronLeft, ChevronRight
 const steps = [
   {
     title: 'Cliente envia HTTP POST',
-    desc: 'Un cliente (Postman, navegador, frontend) envia un POST /orders con los datos del pedido.',
-    code: `POST /api/orders\nContent-Type: application/json\n\n{ "items": [{ "product": "T-Shirt", "qty": 2 }] }`,
+    desc: 'Un frontend o app movil envia POST /appointments con paciente, especialidad, fecha preferida y motivo.',
+    code: `POST /api/appointments\nContent-Type: application/json\n\n{\n  "patientId": "pat_102",\n  "specialtyId": "cardiology",\n  "preferredDate": "2026-06-18T09:00:00Z",\n  "reason": "Control de presion arterial"\n}`,
   },
   {
     title: 'Controller recibe y valida',
-    desc: 'El Controller de NestJS recibe la peticion, valida el DTO con class-validator y extrae los datos.',
-    code: `@Post()\nasync create(\n  @Body() dto: CreateOrderDto\n) { /* delega */ }`,
+    desc: 'El Controller de NestJS valida el DTO y delega la intencion al caso de uso.',
+    code: `@Post()\nasync request(\n  @Body() dto: RequestAppointmentDto\n) {\n  return this.requestAppointment.execute(dto);\n}`,
   },
   {
     title: 'Use Case ejecuta logica',
-    desc: 'El caso de uso recibe el comando, aplica reglas de negocio y decide que puertos invocar.',
-    code: `const order = Order.create(dto.items);\nawait this.payment.process(order.total());\norder.confirm();`,
+    desc: 'El caso de uso crea la solicitud, pide disponibilidad por puerto y aplica reglas del dominio.',
+    code: `const request = AppointmentRequest.create(dto);\nconst slot = await this.schedule.findAvailableSlot(\n  request.specialtyId,\n  request.preferredDate\n);\nrequest.markAsScheduled(slot);`,
   },
   {
     title: 'Port define la interfaz',
-    desc: 'El puerto es solo una interfaz TypeScript. El dominio dice "necesito esto" sin saber como se implementa.',
-    code: `interface OrderRepositoryPort {\n  save(order: Order): Promise<void>;\n  findById(id: string): Promise<Order | null>;\n}`,
+    desc: 'El puerto expresa lo que la aplicacion necesita de la agenda medica sin acoplarse a una base de datos o API externa.',
+    code: `interface DoctorSchedulePort {\n  findAvailableSlot(\n    specialtyId: string,\n    preferredDate: Date\n  ): Promise<DoctorSlot>;\n}`,
   },
   {
     title: 'Adapter implementa concreto',
-    desc: 'El adaptador concreto (Postgres, Mongo, Mock) implementa la interfaz del puerto.',
-    code: `class PostgresOrderRepo\n  implements OrderRepositoryPort {\n  async save(order: Order) {\n    await this.repo.save(order);\n  }\n}`,
+    desc: 'El adaptador concreto consulta PostgreSQL, un sistema HIS o una API de agenda, pero cumple el mismo contrato.',
+    code: `@Injectable()\nclass PostgresDoctorScheduleAdapter\n  implements DoctorSchedulePort {\n  async findAvailableSlot(specialtyId: string, date: Date) {\n    return this.repo.findFirstFreeSlot(specialtyId, date);\n  }\n}`,
   },
   {
     title: 'Base de datos persiste',
-    desc: 'Los datos se guardan en PostgreSQL. El dominio nunca supo que usamos SQL!',
-    code: `await this.dataSource.transaction(\n  async (manager) => {\n    await manager.save(entity);\n  }\n);`,
+    desc: 'La solicitud y la reserva se guardan. El dominio nunca dependio directamente de SQL.',
+    code: `await this.dataSource.transaction(async (manager) => {\n  await manager.save(appointmentEntity);\n  await manager.save(slotReservationEntity);\n});`,
   },
 ];
 
 const nodes = [
-  { icon: Globe, label: 'Cliente HTTP', x: 5, y: 25 },
+  { icon: Globe, label: 'Paciente', x: 5, y: 25 },
   { icon: Server, label: 'Controller', x: 22, y: 50 },
   { icon: Workflow, label: 'Use Case', x: 42, y: 25 },
   { icon: Plug, label: 'Port', x: 60, y: 50 },
   { icon: Cpu, label: 'Adapter', x: 78, y: 25 },
-  { icon: Database, label: 'Base de Datos', x: 92, y: 50 },
+  { icon: Database, label: 'Agenda DB', x: 92, y: 50 },
 ];
 
 export function SimulatorSection() {
@@ -119,15 +119,13 @@ export function SimulatorSection() {
       <div className="max-w-[1280px] mx-auto px-6 lg:px-10 relative z-10">
         <div className="text-center mb-12">
           <SectionLabel text="Simulador Interactivo" />
-          <SectionHeading text="Sigue el Viaje de un Request" className="mb-4" />
+          <SectionHeading text="Sigue el Viaje de una Solicitud de Cita" className="mb-4" />
           <p className="text-text-secondary max-w-xl mx-auto">
-            Observa como un request HTTP viaja a traves de cada capa de la arquitectura hexagonal.
+            Observa como un request HTTP para solicitar una cita medica viaja por cada capa de la arquitectura hexagonal.
           </p>
         </div>
 
-        {/* Node Diagram */}
         <div className="relative h-[200px] mb-8 overflow-hidden">
-          {/* Connection lines */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             {nodes.slice(0, -1).map((_, i) => {
               const curr = nodes[i];
@@ -149,7 +147,6 @@ export function SimulatorSection() {
                 />
               );
             })}
-            {/* Data packet */}
             {currentStep < steps.length && (
               <motion.circle
                 r="2"
@@ -164,7 +161,6 @@ export function SimulatorSection() {
             )}
           </svg>
 
-          {/* Nodes */}
           {nodes.map((node, i) => {
             const state = getNodeState(i);
             return (
@@ -195,7 +191,6 @@ export function SimulatorSection() {
           })}
         </div>
 
-        {/* Step Explanation Panel */}
         <div className="glass-card p-6 mb-6">
           <div className="flex items-center gap-3 mb-3">
             <span className="inline-block text-[0.65rem] font-semibold uppercase tracking-wider text-accent-cyan px-3 py-1 rounded-full border border-accent-cyan/15 bg-accent-cyan/[0.06]">
@@ -223,7 +218,6 @@ export function SimulatorSection() {
           </AnimatePresence>
         </div>
 
-        {/* Controls */}
         <div className="flex justify-center gap-3">
           <button
             onClick={prevStep}

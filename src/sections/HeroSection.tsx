@@ -58,14 +58,11 @@ export function HeroSection() {
       className="relative min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden"
     >
 
-      {/* Ambient gradient overlay */}
-      <div
-        className="absolute inset-0 z-[2] pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 50%, transparent 30%, #08080F 75%), radial-gradient(ellipse at 50% 70%, rgba(0, 212, 255, 0.08) 0%, transparent 50%)',
-        }}
-      />
+
+
+      <div ref={canvasContainerRef} className="absolute inset-0 z-[1]">
+        {isVisible && <HexagonScene />}
+      </div>
 
       {/* Content */}
       <motion.div
@@ -146,7 +143,10 @@ export function HeroSection() {
           transition={{ delay: 1, duration: 0.6 }}
         >
           <p>
-            Omar Villadiego • David Hernandez
+            Moreno Luisa Fernanda <br />
+            Hernandez David <br />
+            Ortiz Jose Miguel <br />
+            Villadiego Omar
           </p>
 
           <p>

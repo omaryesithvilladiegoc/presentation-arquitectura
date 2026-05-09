@@ -6,42 +6,48 @@ import { CodeCard } from '@/components/CodeCard';
 import { Repeat, Zap, Database, HardDrive } from 'lucide-react';
 
 const integrationTestCode = `// Test de integracion con PostgreSQL
-describe('CreateOrder (Integration)', () => {
-  let repo: PostgresOrderRepository;
+describe('RequestAppointment (Integration)', () => {
+  let repo: PostgresAppointmentRepository;
   
   beforeAll(async () => {
-    // Necesitas Docker, migrations, datos...
+    // Necesitas Docker, migrations, datos de doctores...
     const module = await Test.createTestingModule({
       imports: [TypeOrmModule.forRoot(postgresConfig)],
     }).compile();
-    repo = module.get(PostgresOrderRepository);
+    repo = module.get(PostgresAppointmentRepository);
   });
   
-  it('should save order', async () => {
-    const order = Order.create([
-      { product: 'T-Shirt', qty: 2 }
-    ]);
-    await repo.save(order);  // Lento. Requiere DB.
-    expect(await repo.findById(order.id)).toBeDefined();
+  it('should save appointment request', async () => {
+    const request = AppointmentRequest.create({
+      patientId: 'pat_102',
+      specialtyId: 'cardiology',
+      preferredDate: new Date('2026-06-18T09:00:00Z'),
+    });
+    await repo.save(request); // Lento. Requiere DB.
+    expect(await repo.findById(request.id)).toBeDefined();
   });
 });`;
 
-const unitTestCode = `// Test unitario puro — 100ms vs 3000ms
-describe('CreateOrder (Unit)', () => {
-  let useCase: CreateOrderUseCase;
-  let mockRepo: MockOrderRepository;
+const unitTestCode = `// Test unitario puro - 100ms vs 3000ms
+describe('RequestAppointment (Unit)', () => {
+  let useCase: RequestAppointmentUseCase;
+  let mockRepo: MockAppointmentRepository;
+  let mockSchedule: MockDoctorSchedule;
   
   beforeEach(() => {
-    mockRepo = new MockOrderRepository();
-    useCase = new CreateOrderUseCase(mockRepo);
+    mockRepo = new MockAppointmentRepository();
+    mockSchedule = new MockDoctorSchedule();
+    useCase = new RequestAppointmentUseCase(mockRepo, mockSchedule);
   });
   
-  it('should create order', async () => {
-    const order = await useCase.execute({
-      items: [{ product: 'T-Shirt', qty: 2 }]
+  it('should request a medical appointment', async () => {
+    const appointment = await useCase.execute({
+      patientId: 'pat_102',
+      specialtyId: 'cardiology',
+      preferredDate: new Date('2026-06-18T09:00:00Z'),
     });
-    expect(order.status).toBe('CONFIRMED');
-    expect(mockRepo.orders).toHaveLength(1);
+    expect(appointment.status).toBe('SCHEDULED');
+    expect(mockRepo.appointments).toHaveLength(1);
   });
   
   // 30 tests puros en < 1 segundo. Sin Docker.
@@ -61,13 +67,11 @@ export function TestingSection() {
           <SectionLabel text="Testing" />
           <SectionHeading text="Testea sin Base de Datos" className="mb-4" />
           <p className="text-text-secondary max-w-xl mx-auto">
-            Descubre como los mocks de puertos hacen los tests 30x mas rapidos y 100% independientes.
+            Descubre como los mocks de puertos permiten probar solicitudes de citas medicas sin levantar PostgreSQL ni depender de una agenda real.
           </p>
         </div>
 
-        {/* Before/After Diagrams */}
         <div className="grid lg:grid-cols-3 gap-6 mb-16 items-center">
-          {/* Before */}
           <motion.div
             initial={{ x: -60, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
@@ -82,7 +86,7 @@ export function TestingSection() {
                 </div>
                 <div className="w-px h-6 bg-accent-cyan/30" />
                 <div className="w-32 py-2 rounded-lg text-center text-xs font-medium border bg-accent-emerald/10 border-accent-emerald/20 text-accent-emerald">
-                  Postgres Adapter
+                  Appointment Adapter
                 </div>
                 <div className="w-px h-6 bg-accent-emerald/30" />
                 <div className="w-32 py-3 rounded-lg text-center text-xs font-medium border bg-blue-500/10 border-blue-500/20 flex flex-col items-center gap-1">
@@ -93,7 +97,6 @@ export function TestingSection() {
             </GlassCard>
           </motion.div>
 
-          {/* Swap Animation */}
           <motion.div
             className="flex flex-col items-center justify-center"
             initial={{ scale: 0, opacity: 0 }}
@@ -113,7 +116,6 @@ export function TestingSection() {
             </p>
           </motion.div>
 
-          {/* After */}
           <motion.div
             initial={{ x: 60, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
@@ -128,7 +130,7 @@ export function TestingSection() {
                 </div>
                 <div className="w-px h-6 bg-accent-cyan/30" />
                 <div className="w-32 py-2 rounded-lg text-center text-xs font-medium border bg-accent-emerald/10 border-accent-emerald/20 text-accent-emerald">
-                  Mock Adapter
+                  Mock Schedule
                 </div>
                 <div className="w-px h-6 bg-accent-emerald/30" />
                 <div className="w-32 py-3 rounded-lg text-center text-xs font-medium border bg-purple-500/10 border-purple-500/20 flex flex-col items-center gap-1">
@@ -140,14 +142,12 @@ export function TestingSection() {
           </motion.div>
         </div>
 
-        {/* Code Comparison */}
         <div className="grid lg:grid-cols-2 gap-6 relative">
           <div>
             <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Test de Integracion</h4>
-            <CodeCard filename="order.integration.spec.ts" code={integrationTestCode} />
+            <CodeCard filename="appointment.integration.spec.ts" code={integrationTestCode} />
           </div>
 
-          {/* Performance Badge */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 hidden lg:flex">
             <motion.div
               animate={{ y: [-5, 5, -5] }}
@@ -162,11 +162,10 @@ export function TestingSection() {
 
           <div>
             <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Test Unitario Puro</h4>
-            <CodeCard filename="order.unit.spec.ts" code={unitTestCode} />
+            <CodeCard filename="appointment.unit.spec.ts" code={unitTestCode} />
           </div>
         </div>
 
-        {/* Mobile performance badge */}
         <div className="flex justify-center mt-6 lg:hidden">
           <GlassCard className="flex items-center gap-3 px-6 py-3">
             <Zap className="w-5 h-5 text-accent-emerald" />

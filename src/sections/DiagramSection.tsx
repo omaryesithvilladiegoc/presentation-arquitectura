@@ -16,19 +16,16 @@ const hotspotData: Record<string, HotspotInfo> = {
   domain: {
     title: 'Dominio (Domain)',
     description: 'El corazón de tu aplicación. Contiene la lógica de negocio pura, entidades, value objects y reglas. NO depende de NINGUNA capa externa.',
-    code: `export class Order {
+    code: `export class AppointmentRequest {
   constructor(
     private readonly id: string,
-    private readonly items: OrderItem[]
+    private readonly patientId: string,
+    private readonly specialtyId: string,
+    private readonly preferredDate: Date
   ) {}
 
-  calculateTotal(): Money {
-    return this.items.reduce(
-      (sum, item) => sum.add(
-        item.price.multiply(item.quantity)
-      ),
-      Money.zero()
-    );
+  canBeScheduled(now: Date): boolean {
+    return this.preferredDate > now;
   }
 }`,
     dependencies: ['Ninguna — es el centro'],
@@ -36,20 +33,24 @@ const hotspotData: Record<string, HotspotInfo> = {
   usecases: {
     title: 'Caso de Uso (Application)',
     description: 'Orquesta la lógica de negocio. Coordina el flujo de datos entre el dominio y los puertos. No conoce implementaciones concretas — solo interfaces.',
-    code: `export class CreateOrderUseCase {
+    code: `@Injectable()
+export class RequestAppointmentUseCase {
   constructor(
-    private orderRepo: OrderRepositoryPort,
-    private payment: PaymentServicePort,
+    private appointmentRepo: AppointmentRepositoryPort,
+    private schedule: DoctorSchedulePort,
     private events: EventPublisherPort
   ) {}
 
-  async execute(cmd: CreateOrderCmd) {
-    const order = Order.create(cmd.items);
-    await this.payment.process(order.total());
-    order.confirm();
-    await this.orderRepo.save(order);
-    this.events.publish(new OrderCreatedEvent(order));
-    return order;
+  async execute(cmd: RequestAppointmentCmd) {
+    const request = AppointmentRequest.create(cmd);
+    const slot = await this.schedule.findAvailableSlot(
+      cmd.specialtyId,
+      cmd.preferredDate
+    );
+    request.markAsScheduled(slot);
+    await this.appointmentRepo.save(request);
+    this.events.publish(new AppointmentRequestedEvent(request));
+    return request;
   }
 }`,
     dependencies: ['Domain (entidades)', 'Ports (interfaces)'],
@@ -57,14 +58,17 @@ const hotspotData: Record<string, HotspotInfo> = {
   ports: {
     title: 'Puerto (Port)',
     description: 'Define un contrato. Es una interfaz TypeScript que declara qué necesita el dominio, sin especificar cómo se implementa.',
-    code: `export interface OrderRepositoryPort {
-  save(order: Order): Promise<void>;
-  findById(id: string): Promise<Order | null>;
-  findByUser(userId: string): Promise<Order[]>;
+    code: `export interface AppointmentRepositoryPort {
+  save(request: AppointmentRequest): Promise<void>;
+  findById(id: string): Promise<AppointmentRequest | null>;
+  findByPatient(patientId: string): Promise<AppointmentRequest[]>;
 }
 
-export interface PaymentServicePort {
-  process(amount: Money): Promise<PaymentResult>;
+export interface DoctorSchedulePort {
+  findAvailableSlot(
+    specialtyId: string,
+    preferredDate: Date
+  ): Promise<DoctorSlot>;
 }
 
 export interface EventPublisherPort {
@@ -75,18 +79,18 @@ export interface EventPublisherPort {
   controller: {
     title: 'Controller (Interface)',
     description: 'Punto de entrada HTTP. Recibe requests, valida DTOs y delega al caso de uso. No contiene lógica de negocio.',
-    code: `@Controller('orders')
-export class OrderController {
+    code: `@Controller('appointments')
+export class AppointmentController {
   constructor(
-    private createOrder: CreateOrderUseCase
+    private requestAppointment: RequestAppointmentUseCase
   ) {}
 
   @Post()
-  async create(
-    @Body() dto: CreateOrderDto
-  ): Promise<OrderResponse> {
-    const order = await this.createOrder.execute(dto);
-    return OrderResponse.from(order);
+  async request(
+    @Body() dto: RequestAppointmentDto
+  ): Promise<AppointmentResponse> {
+    const appointment = await this.requestAppointment.execute(dto);
+    return AppointmentResponse.from(appointment);
   }
 }`,
     dependencies: ['Application (Use Cases)', 'Domain (tipos)'],
@@ -95,16 +99,16 @@ export class OrderController {
     title: 'Adaptador DB (Infrastructure)',
     description: 'Implementa un Puerto con tecnología concreta. Puede cambiar sin afectar al dominio. El dominio ni se entera.',
     code: `@Injectable()
-export class PostgresOrderRepository
-  implements OrderRepositoryPort {
+export class PostgresAppointmentRepository
+  implements AppointmentRepositoryPort {
   
   constructor(
-    @InjectRepository(OrderEntity)
-    private repo: Repository<OrderEntity>
+    @InjectRepository(AppointmentEntity)
+    private repo: Repository<AppointmentEntity>
   ) {}
 
-  async save(order: Order): Promise<void> {
-    const entity = this.toEntity(order);
+  async save(request: AppointmentRequest): Promise<void> {
+    const entity = this.toEntity(request);
     await this.repo.save(entity);
   }
 
@@ -122,10 +126,10 @@ export class SmtpEventPublisher
   constructor(private mailer: MailerService) {}
 
   publish(event: DomainEvent): void {
-    if (event instanceof OrderCreatedEvent) {
+    if (event instanceof AppointmentRequestedEvent) {
       this.mailer.send({
-        to: event.userEmail,
-        subject: 'Pedido Confirmado',
+        to: event.patientEmail,
+        subject: 'Solicitud de cita recibida',
         body: this.buildTemplate(event)
       });
     }
@@ -135,24 +139,25 @@ export class SmtpEventPublisher
   },
   api: {
     title: 'Adaptador API Externa',
-    description: 'Conecta con servicios externos (pagos, envíos, etc.) a través de HTTP. Aísla al dominio de cambios en APIs de terceros.',
+    description: 'Conecta con servicios externos como una agenda hospitalaria o HIS por HTTP. Aisla al dominio de cambios en APIs de terceros.',
     code: `@Injectable()
-export class StripePaymentAdapter
-  implements PaymentServicePort {
+export class HospitalScheduleAdapter
+  implements DoctorSchedulePort {
   
   constructor(private http: HttpService) {}
 
-  async process(amount: Money): Promise<PaymentResult> {
+  async findAvailableSlot(
+    specialtyId: string,
+    preferredDate: Date
+  ): Promise<DoctorSlot> {
     const response = await this.http.post(
-      '/v1/charges',
-      { amount: amount.cents, currency: 'usd' }
+      '/hospital/schedule/available-slots',
+      { specialtyId, preferredDate }
     );
-    return response.data.status === 'succeeded'
-      ? PaymentResult.success()
-      : PaymentResult.failed();
+    return DoctorSlot.fromExternal(response.data);
   }
 }`,
-    dependencies: ['Ports (interfaces)', 'Domain (Money)'],
+    dependencies: ['Ports (interfaces)', 'Domain (DoctorSlot)'],
   },
 };
 
@@ -335,10 +340,10 @@ export function DiagramSection() {
 
             {/* Infrastructure - Adapters */}
             {[
-              { x: 300, y: 60, label: 'Controller', key: 'controller' },
-              { x: 430, y: 100, label: 'DB Adapter', key: 'dbadapter' },
-              { x: 170, y: 100, label: 'SMTP', key: 'smtp' },
-              { x: 460, y: 200, label: 'API Externa', key: 'api' },
+              { x: 300, y: 60, label: 'HTTP API', key: 'controller' },
+              { x: 430, y: 100, label: 'Agenda DB', key: 'dbadapter' },
+              { x: 170, y: 100, label: 'Email/SMS', key: 'smtp' },
+              { x: 460, y: 200, label: 'HIS API', key: 'api' },
               { x: 140, y: 200, label: 'Queue', key: 'queue' },
               { x: 300, y: 420, label: 'WebSocket', key: 'websocket' },
             ].map((pos) => (
