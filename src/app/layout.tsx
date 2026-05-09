@@ -3,7 +3,6 @@ import "../index.css";
 
 export const metadata: Metadata = {
   title: "Hexagonal Architecture - Facade",
-  description: "Landing interactiva sobre arquitectura hexagonal.",
 };
 
 export default function RootLayout({

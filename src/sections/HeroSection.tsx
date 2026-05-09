@@ -150,7 +150,7 @@ export function HeroSection() {
           </p>
 
           <p>
-            Profesor Andres Marin
+            Profesor Andrés Marín
           </p>
         </motion.div>
 
