@@ -183,7 +183,7 @@ export function LayersSection() {
     >
       <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
         <div className="text-center mb-16">
-          <SectionLabel text="Estructura de Codigo" />
+          
           <SectionHeading text="Ejemplo" className="mb-4" />
           <p className="text-text-secondary max-w-xl mx-auto">
              Solicitud de cita medica en cada capa de la arquitectura hexagonal.

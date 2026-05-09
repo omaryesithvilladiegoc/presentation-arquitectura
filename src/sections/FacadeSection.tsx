@@ -327,7 +327,7 @@ export function FacadeSection() {
 
   <div className="max-w-[1280px] mx-auto px-6 lg:px-10 relative z-10">
     <div className="text-center mb-14">
-      <SectionLabel text="Analisis" />
+      
 
       <SectionHeading
         text="Ventajas y Desventajas"

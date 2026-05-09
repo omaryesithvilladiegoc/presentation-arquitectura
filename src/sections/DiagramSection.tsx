@@ -244,7 +244,7 @@ export function DiagramSection() {
     <section id="diagram" className="section-padding relative overflow-hidden min-h-[100dvh]">
       <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
         <div className="text-center mb-12">
-          <SectionLabel text="Diagrama Interactivo" />
+         
           <SectionHeading text="Explora la Arquitectura" className="mb-4" />
           <p className="text-text-secondary max-w-xl mx-auto">
             Haz clic en cualquier elemento para descubrir su rol. Los datos fluyen desde los adaptadores hacia el dominio.
