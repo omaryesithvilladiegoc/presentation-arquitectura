@@ -150,10 +150,6 @@ export function HeroSection() {
           </p>
 
           <p>
-            Clase de Arquitectura de Software
-          </p>
-
-          <p>
             Profesor Andres Marin
           </p>
         </motion.div>

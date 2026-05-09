@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "../index.css";
 
 export const metadata: Metadata = {
-  title: "Hexagonal.dev",
+  title: "Hexagonal Architecture - Facade",
   description: "Landing interactiva sobre arquitectura hexagonal.",
 };
 

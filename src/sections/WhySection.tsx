@@ -11,18 +11,18 @@ gsap.registerPlugin(ScrollTrigger);
 const problems = [
   {
     icon: Link2,
-    title: 'Alto Acoplamiento',
-    desc: 'Capas superiores dependen directamente de implementaciones concretas. Cambiar una base de datos requiere reescribir código en múltiples lugares.',
+    title: 'Mantenibilidad',
+    desc: 'La arquitectura hexagonal separa claramente la lógica de negocio de dependencias externas como frameworks, APIs o bases de datos. Esto permite realizar cambios sin afectar el núcleo de la aplicación.',
   },
   {
     icon: AlertTriangle,
-    title: 'Tests Imposibles',
-    desc: 'No puedes testear tu lógica de negocio sin levantar una base de datos real, conectar a servicios externos o mockear frameworks enteros.',
+    title: 'Testeabilidad',
+    desc: 'Facilita probar la lógica de negocio utilizando mocks y stubs, sin necesidad de levantar bases de datos reales o depender de servicios externos.',
   },
   {
     icon: Layers,
-    title: 'Código Frágil',
-    desc: 'Un cambio en infraestructura — SMTP, API externa, cola de mensajes — provoca cascada de errores en toda la aplicación.',
+    title: 'Facilidad para cambiar implementaciones',
+    desc: 'Si una tecnología cambia, por ejemplo pasar de REST a GraphQL, solo es necesario crear un nuevo adaptador sin modificar la aplicación.',
   },
 ];
 
@@ -59,10 +59,17 @@ export function WhySection() {
 
       // Animate diagram elements
       if (diagramRef.current) {
-        const tradEls = diagramRef.current.querySelectorAll('.trad-band');
-        const hexEls = diagramRef.current.querySelectorAll('.hex-element');
-        const tradLines = diagramRef.current.querySelectorAll('.trad-line');
-        const hexLines = diagramRef.current.querySelectorAll('.hex-line');
+        const tradEls =
+          diagramRef.current.querySelectorAll('.trad-band');
+
+        const hexEls =
+          diagramRef.current.querySelectorAll('.hex-element');
+
+        const tradLines =
+          diagramRef.current.querySelectorAll('.trad-line');
+
+        const hexLines =
+          diagramRef.current.querySelectorAll('.hex-line');
 
         const tl = gsap.timeline({
           scrollTrigger: {
@@ -73,27 +80,57 @@ export function WhySection() {
           },
         });
 
-        // Phase 1: Traditional visible
+        // Traditional architecture
         tl.fromTo(
           tradEls,
           { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, stagger: 0.1 }
+          {
+            opacity: 1,
+            y: 0,
+            stagger: 0.1,
+          }
         )
-          .fromTo(tradLines, { opacity: 0 }, { opacity: 1 }, '<0.2')
+          .fromTo(
+            tradLines,
+            { opacity: 0 },
+            { opacity: 1 },
+            '<0.2'
+          )
 
-          // Phase 2: Break apart
-          .to(tradLines, { opacity: 0, duration: 0.3 })
-          .to(tradEls, { opacity: 0, y: -20, duration: 0.3 }, '<')
+          // Hide traditional
+          .to(tradLines, {
+            opacity: 0,
+            duration: 0.3,
+          })
+          .to(
+            tradEls,
+            {
+              opacity: 0,
+              y: -20,
+              duration: 0.3,
+            },
+            '<'
+          )
 
-          // Phase 3: Hexagonal appears
+          // Show hexagonal
           .fromTo(
             hexEls,
-            { opacity: 0, scale: 0.8 },
-            { opacity: 1, scale: 1, stagger: 0.08 }
+            {
+              opacity: 0,
+              scale: 0.8,
+            },
+            {
+              opacity: 1,
+              scale: 1,
+              stagger: 0.08,
+            }
           )
           .fromTo(
             hexLines,
-            { opacity: 0, strokeDashoffset: 30 },
+            {
+              opacity: 0,
+              strokeDashoffset: 30,
+            },
             {
               opacity: 0.6,
               strokeDashoffset: 0,
@@ -116,32 +153,37 @@ export function WhySection() {
       <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
         <div className="grid lg:grid-cols-[45%_55%] gap-12 lg:gap-16 items-center">
 
-          {/* Left Column - Text + Cards */}
+          {/* Left Column */}
           <div>
-            <SectionLabel text="El Problema" />
+            <SectionLabel text="Arquitectura Hexagonal" />
 
             <SectionHeading
-              text="¿Por qué Arquitectura Hexagonal?"
+              text="¿Qué es y por qué usarla?"
               className="mb-6"
             />
 
             {/* Definition */}
             <p className="why-description text-text-secondary leading-relaxed mb-8 max-w-[620px]">
-              La Arquitectura Hexagonal es un modelo de diseño de software
-              que separa la lógica de negocio de las tecnologías externas
-              mediante el uso de
-              <span className="text-accent-cyan font-medium"> Ports </span>
-              y
-              <span className="text-accent-violet font-medium">
-                {' '}
-                Adapters
+              La arquitectura hexagonal es una propuesta donde se busca
+              organizar un sistema a partir de un elemento central llamado
+              <span className="text-accent-cyan font-medium">
+                {' '}aplicación
               </span>.
-              Esto permite construir aplicaciones desacopladas, escalables,
-              fáciles de mantener y simples de testear sin depender
-              directamente de bases de datos, APIs o frameworks.
+              Esta aplicación contiene las reglas de negocio y proporciona
+              una estructura modular que promueve la separación de
+              responsabilidades, la flexibilidad y la testeabilidad.
+              <br />
+              <br />
+              También es conocida como arquitectura de
+              <span className="text-accent-violet font-medium">
+                {' '}puertos y adaptadores
+              </span>,
+              ya que los puertos permiten acceder a la lógica de negocio y
+              los adaptadores conectan elementos externos como APIs,
+              bases de datos, interfaces gráficas o servicios externos.
             </p>
 
-            {/* Problem Cards */}
+            {/* Benefits */}
             <div className="space-y-4">
               {problems.map((p, i) => (
                 <GlassCard
@@ -169,46 +211,19 @@ export function WhySection() {
             </div>
           </div>
 
-          {/* Right Column - Animated Diagram */}
+          {/* Right Column - Diagram */}
           <div
             ref={diagramRef}
             className="relative aspect-square max-w-[500px] mx-auto"
           >
-            {/* Traditional Architecture - Bands */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              {[
-                'Frontend',
-                'Controller',
-                'Service',
-                'Repository',
-                'Base de Datos',
-              ].map((label, i) => (
-                <div
-                  key={`trad-${i}`}
-                  className="trad-band w-64 h-12 rounded-lg flex items-center justify-center text-sm font-medium border"
-                  style={{
-                    background: 'rgba(0, 212, 255, 0.1)',
-                    borderColor: 'rgba(0, 212, 255, 0.2)',
-                    color: '#7A7A8D',
-                  }}
-                >
-                  {label}
-                </div>
-              ))}
-
-              <div className="trad-line absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[0.7rem] font-semibold tracking-wider text-accent-amber bg-bg-primary px-3 py-1 rounded">
-                  ACOPLAMIENTO ALTO
-                </span>
-              </div>
-            </div>
+      
 
             {/* Hexagonal Architecture */}
             <svg
               className="absolute inset-0 w-full h-full"
               viewBox="0 0 400 400"
             >
-              {/* Connection lines */}
+              {/* Lines */}
               <g className="hex-line" opacity="0">
                 <path
                   d="M200 200 L200 100"
@@ -217,6 +232,7 @@ export function WhySection() {
                   fill="none"
                   strokeDasharray="8 4"
                 />
+
                 <path
                   d="M200 200 L286 250"
                   stroke="#00D4FF"
@@ -224,6 +240,7 @@ export function WhySection() {
                   fill="none"
                   strokeDasharray="8 4"
                 />
+
                 <path
                   d="M200 200 L114 250"
                   stroke="#00D4FF"
@@ -231,6 +248,7 @@ export function WhySection() {
                   fill="none"
                   strokeDasharray="8 4"
                 />
+
                 <path
                   d="M200 100 L200 50"
                   stroke="#00D4FF"
@@ -238,6 +256,7 @@ export function WhySection() {
                   fill="none"
                   strokeDasharray="8 4"
                 />
+
                 <path
                   d="M200 100 L300 80"
                   stroke="#00D4FF"
@@ -245,6 +264,7 @@ export function WhySection() {
                   fill="none"
                   strokeDasharray="8 4"
                 />
+
                 <path
                   d="M200 100 L100 80"
                   stroke="#00D4FF"
@@ -254,7 +274,7 @@ export function WhySection() {
                 />
               </g>
 
-              {/* Center hexagon - Domain */}
+              {/* Domain */}
               <g className="hex-element" opacity="0">
                 <polygon
                   points="200,155 243,180 243,220 200,245 157,220 157,180"
@@ -272,7 +292,7 @@ export function WhySection() {
                   fontWeight="700"
                   fontFamily="Inter"
                 >
-                  DOMINIO
+                  APLICACIÓN
                 </text>
 
                 <text
@@ -283,15 +303,15 @@ export function WhySection() {
                   fontSize="8"
                   fontFamily="JetBrains Mono"
                 >
-                  Entities, Value Objects
+                  Lógica de Negocio
                 </text>
               </g>
 
-              {/* Application ring - Ports */}
+              {/* Ports */}
               {[
-                { x: 200, y: 100, label: 'Use Cases' },
-                { x: 286, y: 250, label: 'Ports' },
-                { x: 114, y: 250, label: 'App Services' },
+                { x: 200, y: 100, label: 'Puertos' },
+                { x: 286, y: 250, label: 'Use Cases' },
+                { x: 114, y: 250, label: 'Servicios' },
               ].map((pos, i) => (
                 <g
                   key={`app-${i}`}
@@ -299,13 +319,12 @@ export function WhySection() {
                   opacity="0"
                 >
                   <polygon
-                    points={`${pos.x},${pos.y - 30} ${pos.x + 26},${
-                      pos.y - 15
-                    } ${pos.x + 26},${pos.y + 15} ${pos.x},${
-                      pos.y + 30
-                    } ${pos.x - 26},${pos.y + 15} ${
-                      pos.x - 26
-                    },${pos.y - 15}`}
+                    points={`${pos.x},${pos.y - 30}
+                    ${pos.x + 26},${pos.y - 15}
+                    ${pos.x + 26},${pos.y + 15}
+                    ${pos.x},${pos.y + 30}
+                    ${pos.x - 26},${pos.y + 15}
+                    ${pos.x - 26},${pos.y - 15}`}
                     fill="rgba(0, 212, 255, 0.12)"
                     stroke="#00D4FF"
                     strokeWidth="1.2"
@@ -325,14 +344,14 @@ export function WhySection() {
                 </g>
               ))}
 
-              {/* Outer adapters */}
+              {/* Adapters */}
               {[
-                { x: 200, y: 50, label: 'Controller' },
-                { x: 300, y: 80, label: 'DB Adapter' },
+                { x: 200, y: 50, label: 'REST API' },
+                { x: 300, y: 80, label: 'MySQL' },
                 { x: 100, y: 80, label: 'SMTP' },
-                { x: 330, y: 180, label: 'API REST' },
-                { x: 70, y: 180, label: 'Queue' },
-                { x: 200, y: 330, label: 'WebSocket' },
+                { x: 330, y: 180, label: 'GraphQL' },
+                { x: 70, y: 180, label: 'Mocks' },
+                { x: 200, y: 330, label: 'Frontend' },
               ].map((pos, i) => (
                 <g
                   key={`adapt-${i}`}

@@ -43,9 +43,7 @@ export function Navigation() {
       }`}
     >
       <div className="w-full max-w-[1280px] mx-auto px-6 flex items-center justify-between">
-        <button onClick={() => scrollTo('hero')} className="font-display text-lg text-text-primary tracking-tight">
-          Hexagonal<span className="text-accent-cyan">.dev</span>
-        </button>
+        
 
         <div className="hidden lg:flex items-center gap-1">
           {navLinks.map(link => (
